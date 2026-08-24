@@ -8,13 +8,9 @@ import {
   type CommunityCategoryId,
 } from "@/components/community/community-categories";
 import { surfaceClass } from "@/components/surface";
+import type { CommunityTagCount } from "@/components/community/community.schemas";
 import { formatTag } from "@/lib/parse-tags";
 import { cn } from "@/lib/utils";
-
-export type CommunityTagCount = {
-  tag: string;
-  count: number;
-};
 
 export function CommunitySidebar({
   categoryId,

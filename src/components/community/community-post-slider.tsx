@@ -7,22 +7,18 @@ import {
   chunkPages,
   usePagedSliderPageSize,
 } from "@/components/paged-slider";
-import type { CommunityPost } from "@/data/community-posts";
+import type { CommunityPost } from "@/components/community/community.schemas";
 
 export const communitySliderPostCount = 12;
 
 export function CommunityPostSlider({
   posts,
-  isLiked,
-  isSaved,
   onLike,
   onSave,
   onShare,
   onTagClick,
 }: {
   posts: CommunityPost[];
-  isLiked: (id: string) => boolean;
-  isSaved: (id: string) => boolean;
   onLike: (id: string) => void;
   onSave: (id: string) => void;
   onShare: (post: CommunityPost) => void;
@@ -49,8 +45,8 @@ export function CommunityPostSlider({
             <CommunityPostCard
               post={post}
               compact
-              isLiked={isLiked(post.id)}
-              isSaved={isSaved(post.id)}
+              isLiked={post.liked}
+              isSaved={post.saved}
               onLike={() => onLike(post.id)}
               onSave={() => onSave(post.id)}
               onShare={() => onShare(post)}

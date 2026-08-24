@@ -1,7 +1,11 @@
 import "server-only";
 
 import { sendMail } from "@/lib/email/smtp";
-import { storyPublishedEmail, welcomeEmail } from "@/lib/email/templates";
+import {
+  postCreatedEmail,
+  storyPublishedEmail,
+  welcomeEmail,
+} from "@/lib/email/templates";
 
 function isMailbox(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -43,4 +47,15 @@ export async function notifyStoryPublished(input: {
     to,
     storyPublishedEmail(input)
   );
+}
+
+export async function notifyPostCreated(input: {
+  to: string;
+  firstName: string | null | undefined;
+  excerpt: string;
+  postId: string;
+}) {
+  const to = input.to.trim();
+  if (!isMailbox(to)) return false;
+  return deliver("Community post email failed", to, postCreatedEmail(input));
 }

@@ -5,12 +5,15 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
+import { useTranslations } from "next-intl";
 import {
   communityPostSchema,
+  type CommunityPost,
   type CommunityPostValues,
 } from "@/components/community/community.schemas";
+import { useCreatePost, useUpdatePost } from "@/components/community/use-posts";
 import { useUploadPhoto } from "@/components/uploads/use-upload-photo";
-import type { CommunityPost } from "@/data/community-posts";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 function emptyValues(): CommunityPostValues {
   return { body: "", categoryId: "our-stories", linkUrl: "" };
@@ -26,18 +29,21 @@ function valuesFromPost(post: CommunityPost): CommunityPostValues {
 
 export function useCommunityComposer({
   post,
-  onSave,
+  onSaved,
   onCancel,
 }: {
   post?: CommunityPost;
-  onSave: (post: CommunityPost) => void;
+  onSaved?: () => void;
   onCancel?: () => void;
 }) {
+  const t = useTranslations("Community");
   const { user } = useUser();
   const isEdit = Boolean(post);
   const [open, setOpen] = useState(isEdit);
   const [keptImage, setKeptImage] = useState(post?.images[0]);
   const photo = useUploadPhoto();
+  const createPost = useCreatePost();
+  const updatePost = useUpdatePost();
 
   const form = useForm<CommunityPostValues>({
     resolver: zodResolver(communityPostSchema),
@@ -48,8 +54,12 @@ export function useCommunityComposer({
   const bodyValue = useWatch({ control, name: "body" }) ?? "";
   const linkUrl = useWatch({ control, name: "linkUrl" });
   const displayName = post?.authorName || user?.fullName || "Member";
-  const photoPreview = photo.photoPreview || photo.photoUrl || keptImage;
-  const isBusy = form.formState.isSubmitting || photo.isUploading;
+  const photoPreview = photo.photoPreview || photo.photoUrl || keptImage?.url;
+  const isBusy =
+    form.formState.isSubmitting ||
+    photo.isUploading ||
+    createPost.isPending ||
+    updatePost.isPending;
 
   useEffect(() => {
     if (!post) return;
@@ -60,17 +70,17 @@ export function useCommunityComposer({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset from the post being edited
   }, [post?.id, reset]);
 
-  function discardComposer() {
+  function resetComposer() {
     reset(emptyValues());
     photo.clearPhoto();
     setKeptImage(undefined);
     setOpen(false);
-    onCancel?.();
   }
 
   function requestClose() {
     if (isBusy) return;
-    discardComposer();
+    resetComposer();
+    onCancel?.();
   }
 
   function openCreate() {
@@ -80,38 +90,39 @@ export function useCommunityComposer({
     setOpen(true);
   }
 
-  function onSubmit(values: CommunityPostValues) {
+  async function onSubmit(values: CommunityPostValues) {
     if (!isEdit && !user?.id) {
-      toast.error("Sign in to publish a post.");
+      toast.error(t("signInToPublish"));
       return;
     }
 
-    onSave({
-      id: post?.id ?? `draft-${Date.now()}`,
-      authorId: post ? post.authorId : user?.id,
-      authorName: post ? post.authorName : displayName,
-      createdAt: post?.createdAt ?? new Date().toISOString(),
-      categoryId: values.categoryId,
-      body: values.body,
-      tags: post?.tags ?? [],
-      images: photo.photoUrl ? [photo.photoUrl] : keptImage ? [keptImage] : [],
-      likeCount: post?.likeCount ?? 0,
-      saveCount: post?.saveCount ?? 0,
-      linkUrl: values.linkUrl || undefined,
-    });
-    discardComposer();
-    toast.message(
-      isEdit
-        ? "This post is updated on this device for now. Saving to the community feed is next."
-        : "Your post is on this page for now. Saving to the community feed is next."
-    );
+    const payload = {
+      ...values,
+      imageKey: photo.photoKey || keptImage?.key || "",
+    };
+
+    try {
+      if (post) {
+        await updatePost.mutateAsync({ id: post.id, values: payload });
+        toast.success(t("updatedToast"));
+      } else {
+        await createPost.mutateAsync(payload);
+        toast.success(t("publishedToast"));
+      }
+      resetComposer();
+      onSaved?.();
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error, isEdit ? t("updateError") : t("publishError"))
+      );
+    }
   }
 
   return {
     isEdit,
     open,
     displayName,
-    imageUrl: isEdit ? undefined : user?.imageUrl,
+    imageUrl: isEdit ? post?.authorImageUrl : user?.imageUrl,
     bodyValue,
     linkUrl,
     photoPreview,

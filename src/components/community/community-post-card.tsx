@@ -14,7 +14,7 @@ import { formatTag } from "@/lib/parse-tags";
 import {
   extractPostLink,
   type CommunityPost,
-} from "@/data/community-posts";
+} from "@/components/community/community.schemas";
 import { cn } from "@/lib/utils";
 import { motionEase } from "@/components/reveal";
 import { surfaceClass } from "@/components/surface";
@@ -71,15 +71,17 @@ export function CommunityPostCard({
   const categoryLabel = t(`categories.${post.categoryId}`);
   const CategoryIcon = category.icon;
   const linkUrl = extractPostLink(post.body, post.linkUrl);
-  const likeCount = post.likeCount + (isLiked ? 1 : 0);
-  const saveCount = post.saveCount + (isSaved ? 1 : 0);
+  const likeCount = post.likeCount;
+  const saveCount = post.saveCount;
   const visibleTags = compact
     ? post.tags.slice(0, COMPACT_TAG_LIMIT)
     : post.tags;
   const hiddenTagCount = compact
     ? Math.max(0, post.tags.length - COMPACT_TAG_LIMIT)
     : 0;
-  const images = compact ? post.images.slice(0, 1) : post.images;
+  const imageUrls = (compact ? post.images.slice(0, 1) : post.images).map(
+    (image) => image.url
+  );
 
   return (
     <article
@@ -93,7 +95,7 @@ export function CommunityPostCard({
       )}
     >
       <header className="flex min-w-0 items-start gap-3">
-        <CommunityAvatar name={post.authorName} />
+        <CommunityAvatar name={post.authorName} imageUrl={post.authorImageUrl} />
         <div className="min-w-0 flex-1">
           <Heading as="h3" variant="card" className="truncate text-base sm:text-base">
             {post.authorName}
@@ -156,8 +158,8 @@ export function CommunityPostCard({
           </div>
         ) : null}
 
-        {images.length > 0 || compact ? (
-          <CommunityPostMedia images={images} compact={compact} />
+        {imageUrls.length > 0 || compact ? (
+          <CommunityPostMedia images={imageUrls} compact={compact} />
         ) : null}
 
         <footer

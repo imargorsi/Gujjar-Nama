@@ -12,12 +12,18 @@ import { CommunityPagination } from "@/components/community/community-pagination
 import { CommunityPostCard } from "@/components/community/community-post-card";
 import { CommunityPostSlider } from "@/components/community/community-post-slider";
 import { CommunitySidebar } from "@/components/community/community-sidebar";
+import {
+  CommunityFeedSkeleton,
+  CommunitySliderSkeleton,
+} from "@/components/community/community-skeletons";
 import { useCommunityFeed } from "@/components/community/use-community-feed";
 import type { CommunityCategoryId } from "@/components/community/community-categories";
 import { formatTag } from "@/lib/parse-tags";
+import { EmptyWell } from "@/components/empty-well";
 import { FeedItem, SplitReveal } from "@/components/reveal";
 import { Text } from "@/components/typography";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function CommunityFeed({
@@ -73,7 +79,7 @@ export function CommunityFeed({
   ) : feed.canCompose ? (
     <CommunityComposer
       post={feed.editing}
-      onSave={feed.savePost}
+      onSaved={() => feed.setEditing(undefined)}
       onCancel={() => feed.setEditing(undefined)}
       showWriteButton={!isSliderLayout}
     />
@@ -81,40 +87,49 @@ export function CommunityFeed({
     <CommunityJoinPrompt />
   ) : null;
 
-  const list =
-    feed.posts.length === 0 ? (
-      <CommunityEmptyPrompt isFiltered={feed.isFiltered} />
-    ) : isSliderLayout ? (
-      <CommunityPostSlider
-        posts={feed.posts}
-        isLiked={(id) => feed.likedIds.has(id)}
-        isSaved={(id) => feed.savedIds.has(id)}
-        onLike={feed.toggleLike}
-        onSave={feed.toggleSave}
-        onShare={feed.sharePost}
-        onTagClick={feed.selectTag}
-      />
+  const list = feed.isError ? (
+    <EmptyWell
+      icon={MessagesSquare}
+      title={t("loadErrorTitle")}
+      text={t("loadErrorText")}
+    />
+  ) : feed.isLoading ? (
+    isSliderLayout ? (
+      <CommunitySliderSkeleton />
     ) : (
-      <div className="flex flex-col gap-5">
-        <AnimatePresence initial={false}>
-          {feed.posts.map((post, index) => (
-            <FeedItem key={post.id} index={index}>
-              <CommunityPostCard
-                post={post}
-                isLiked={feed.likedIds.has(post.id)}
-                isSaved={feed.savedIds.has(post.id)}
-                onLike={() => feed.toggleLike(post.id)}
-                onSave={() => feed.toggleSave(post.id)}
-                onShare={() => feed.sharePost(post)}
-                onTagClick={feed.selectTag}
-                onEdit={() => feed.setEditing(post)}
-                onDelete={() => feed.deletePost(post)}
-              />
-            </FeedItem>
-          ))}
-        </AnimatePresence>
-      </div>
-    );
+      <CommunityFeedSkeleton />
+    )
+  ) : feed.posts.length === 0 ? (
+    <CommunityEmptyPrompt isFiltered={feed.isFiltered} />
+  ) : isSliderLayout ? (
+    <CommunityPostSlider
+      posts={feed.posts}
+      onLike={feed.toggleLike}
+      onSave={feed.toggleSave}
+      onShare={feed.sharePost}
+      onTagClick={feed.selectTag}
+    />
+  ) : (
+    <div className="flex flex-col gap-5">
+      <AnimatePresence initial={false}>
+        {feed.posts.map((post, index) => (
+          <FeedItem key={post.id} index={index}>
+            <CommunityPostCard
+              post={post}
+              isLiked={post.liked}
+              isSaved={post.saved}
+              onLike={() => feed.toggleLike(post.id)}
+              onSave={() => feed.toggleSave(post.id)}
+              onShare={() => feed.sharePost(post)}
+              onTagClick={feed.selectTag}
+              onEdit={() => feed.setEditing(post)}
+              onDelete={() => feed.deletePost(post)}
+            />
+          </FeedItem>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
 
   if (isBoard) {
     return (
@@ -124,7 +139,7 @@ export function CommunityFeed({
             <CommunitySidebar
               categoryId={initialCategory}
               tag={initialTag}
-              totalCount={feed.catalog.length}
+              totalCount={feed.catalogCount}
               counts={feed.counts}
               tags={feed.tags}
               onCategoryChange={feed.selectCategory}

@@ -21,24 +21,24 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { CommunityPost } from "@/data/community-posts";
+import type { CommunityPost } from "@/components/community/community.schemas";
 import { maxImageUploadMb } from "@/lib/storage/upload.schemas";
 import { cn } from "@/lib/utils";
 
 export function CommunityComposer({
   post,
-  onSave,
+  onSaved,
   onCancel,
   showWriteButton = true,
 }: {
   post?: CommunityPost;
-  onSave: (post: CommunityPost) => void;
+  onSaved?: () => void;
   onCancel?: () => void;
   showWriteButton?: boolean;
 }) {
   const t = useTranslations("Community");
   const common = useTranslations("Common");
-  const composer = useCommunityComposer({ post, onSave, onCancel });
+  const composer = useCommunityComposer({ post, onSaved, onCancel });
   const {
     register,
     handleSubmit,

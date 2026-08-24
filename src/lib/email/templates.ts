@@ -161,3 +161,50 @@ export function storyPublishedEmail(input: {
     }),
   };
 }
+
+export function postCreatedEmail(input: {
+  firstName: string | null | undefined;
+  excerpt: string;
+  postId: string;
+}) {
+  const name = greetingName(input.firstName);
+  const communityUrl = `${siteOrigin}/community#${encodeURIComponent(input.postId)}`;
+  const excerpt = input.excerpt.trim();
+
+  const lines = [
+    `Hello ${name},`,
+    "",
+    "Your post is now on the Gujjar Nama community.",
+  ];
+  if (excerpt) {
+    lines.push("", excerpt);
+  }
+  lines.push(
+    "",
+    `See it in the community: ${communityUrl}`,
+    "",
+    "Preserving our past, connecting our people, inspiring our future."
+  );
+
+  return {
+    subject: "Your post is on the Gujjar Nama community",
+    text: lines.join("\n"),
+    html: wrapEmail({
+      preview: "Your post is now on the Gujjar Nama community.",
+      heading: "Your post is live",
+      ctaLabel: "See your post",
+      ctaHref: communityUrl,
+      bodyHtml: `
+        <p style="margin:0 0 14px 0;font-size:16px;line-height:1.6;">Hello ${escapeHtml(name)},</p>
+        <p style="margin:0 0 14px 0;font-size:16px;line-height:1.6;">
+          Your post is now on the Gujjar Nama community.
+        </p>
+        ${
+          excerpt
+            ? `<p style="margin:0;font-size:15px;line-height:1.6;color:${warmGray};">${escapeHtml(excerpt)}</p>`
+            : ""
+        }
+      `,
+    }),
+  };
+}
